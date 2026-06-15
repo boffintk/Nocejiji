@@ -1,492 +1,228 @@
-        // ==========================================================================
-        // FÍSICAS Y OBJETOS DEL JUEGO (CONTINUACIÓN - PARTE 2)
-        // ==========================================================================
-        
-        // Cámara de seguimiento suave con amortiguación
-        const camera = {
-            x: 0,
-            y: 0,
-            targetX: 0,
-            speed: 0.08
-        };
+/* ==========================================================================
+   1. ESTILOS GENERALES Y CONFIGURACIÓN DE PANTALLA
+   ========================================================================== */
+* {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    margin: 0;
+    padding: 0;
+}
 
-        // El Jugador (Estilo cubo futurista / glitch)
-        const player = {
-            x: 200,
-            y: 400,
-            width: 45,
-            height: 45,
-            vx: 0,
-            vy: 0,
-            speed: 8,
-            gravity: 0.6,
-            jumpForce: -14.5,
-            grounded: false,
-            color: '#ff0055',
-            invulnerable: 0, // Frames de invulnerabilidad tras daño
-            glitchTimer: 0,
-            
-            update() {
-                // Reducir temporizadores de efectos
-                if (this.invulnerable > 0) this.invulnerable--;
-                if (this.glitchTimer > 0) this.glitchTimer--;
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #050508;
+    font-family: 'Courier New', Courier, monospace;
+    color: #ffffff;
+}
 
-                // Aplicar movimiento horizontal por mandos
-                if (keys.left) this.vx = -this.speed;
-                else if (keys.right) this.vx = this.speed;
-                else this.vx *= 0.82; // Fricción suave en superficies planas
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-                // Aplicar gravedad constante
-                this.vy += this.gravity;
+canvas {
+    display: block;
+    background: #0d0d13;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
+}
 
-                // Salto (solo si está firmemente apoyado en el suelo)
-                if (keys.up && this.grounded) {
-                    this.vy = this.jumpForce;
-                    this.grounded = false;
-                    // Generar pequeñas partículas de polvo al saltar
-                    createExplosion(this.x + this.width/2, this.y + this.height, '#ffffff', 5);
-                }
+/* ==========================================================================
+   2. PANTALLAS DE MENÚ (Configuraciones, Idioma, Color)
+   ========================================================================== */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 15, 0.98);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
 
-                // Actualizar posiciones lineales
-                this.x += this.vx;
-                this.y += this.vy;
+.hidden { display: none !important; }
 
-                // Evitar caer al vacío absoluto por debajo de la pantalla liminal
-                if (this.y > BASE_HEIGHT + 200) {
-                    this.damage(20);
-                    this.resetPosition();
-                }
-            },
+.title {
+    font-size: 38px;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #fff;
+    text-shadow: 0 0 15px #ff0055;
+    letter-spacing: 2px;
+}
 
-            damage(amount) {
-                if (this.invulnerable > 0) return; // Inmune temporalmente
-                
-                hp -= amount;
-                this.invulnerable = 45; // ~0.7 segundos de inmunidad
-                this.glitchTimer = 15;  // Efecto visual estroboscópico
-                
-                // Explosión de partículas rojas por impacto
-                createExplosion(this.x + this.width/2, this.y + this.height/2, '#ff0055', 15);
-                
-                if(hp <= 0) {
-                    hp = 0;
-                    endGame();
-                }
-                hpDisplay.textContent = hp + "%";
-            },
+.menu-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid #2a2a3a;
+    padding: 20px;
+    border-radius: 12px;
+    width: 85%;
+    max-width: 450px;
+    text-align: center;
+    margin-bottom: 20px;
+}
 
-            resetPosition() {
-                // Reubicar de forma segura sobre la plataforma activa más cercana
-                if (platforms.length > 0) {
-                    this.x = platforms[0].x + 50;
-                    this.y = platforms[0].y - 100;
-                } else {
-                    this.x = 200;
-                    this.y = 100;
-                }
-                this.vx = 0;
-                this.vy = 0;
-            },
+.menu-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+}
 
-            draw() {
-                // Parpadeo si es invulnerable o está bajo daño glitch
-                if (this.invulnerable > 0 && Math.floor(this.invulnerable / 3) % 2 === 0) return;
+.label-txt {
+    font-size: 16px;
+    font-weight: bold;
+}
 
-                ctx.save();
-                ctx.shadowBlur = this.glitchTimer > 0 ? 30 : 15;
-                ctx.shadowColor = this.color;
-                ctx.fillStyle = this.color;
-                
-                let renderX = this.x - camera.x;
-                let renderY = this.y;
+/* Botones del Menú */
+.btn {
+    padding: 10px 25px;
+    font-size: 16px;
+    font-family: inherit;
+    background: #ff0055;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+    transition: background 0.2s;
+}
 
-                // Distorsión por glitch estético
-                if (this.glitchTimer > 0) {
-                    renderX += (Math.random() - 0.5) * 12;
-                    ctx.fillStyle = '#00ffff';
-                }
-                
-                // Dibujar cuerpo principal del cubo
-                ctx.fillRect(renderX, renderY, this.width, this.height);
-                
-                // Visor digital animado (Estética Dreamcore retro)
-                ctx.fillStyle = this.glitchTimer > 0 ? '#ff0055' : '#ffffff';
-                ctx.fillRect(renderX + 12, renderY + 12, 22, 8);
-                ctx.restore();
-            }
-        };
+.btn:active {
+    background: #cc0044;
+}
 
-        // ==========================================================================
-        // ARRAYS GLOBALES Y SISTEMAS DEL MUNDO
-        // ==========================================================================
-        const platforms = [];
-        const entities = [];   // Enemigos / Sombras del vacío
-        const items = [];      // Cubos y esferas de energía lumínica
-        const particles = [];  // Efectos visuales volátiles
+.btn-select {
+    padding: 6px 15px;
+    font-size: 14px;
+    background: #222230;
+    border: 2px solid #444460;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
 
-        // Clase Entidad Enemiga (Sombras Estáticas y Perseguidores Flotantes)
-        class Entity {
-            constructor(x, y, type) {
-                this.x = x;
-                this.y = y;
-                this.type = type; // 'crawler' (camina en plataformas) o 'wisp' (vuela)
-                this.width = type === 'crawler' ? 35 : 25;
-                this.height = type === 'crawler' ? 35 : 25;
-                this.vx = type === 'crawler' ? (Math.random() > 0.5 ? 2 : -2) : 0;
-                this.vy = 0;
-                this.wispAngle = Math.random() * Math.PI * 2; // Para oscilación flotante
-                this.speed = type === 'wisp' ? 2.5 : 2;
-                this.color = type === 'crawler' ? '#7d00cc' : '#00ffcc';
-            }
+.btn-select.active {
+    background: #00ffcc;
+    color: #000;
+    border-color: #00ffcc;
+    font-weight: bold;
+}
 
-            update() {
-                if (this.type === 'crawler') {
-                    // Gravedad para enemigos terrestres
-                    this.vy += 0.5;
-                    this.y += this.vy;
+/* Color Pickers Circulares */
+.color-picker {
+    display: flex;
+    gap: 10px;
+}
 
-                    // Colisión básica con plataformas para no caerse
-                    let onPlatform = false;
-                    for (let plat of platforms) {
-                        if (this.x + this.width > plat.x && this.x < plat.x + plat.width &&
-                            this.y + this.height >= plat.y && this.y + this.height - this.vy <= plat.y + 6) {
-                            this.y = plat.y - this.height;
-                            this.vy = 0;
-                            onPlatform = true;
+.color-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
 
-                            // Patrullar de borde a borde en su plataforma asignada
-                            if (this.x <= plat.x) this.vx = this.speed;
-                            if (this.x + this.width >= plat.x + plat.width) this.vx = -this.speed;
-                        }
-                    }
-                    this.x += this.vx;
-                } 
-                else if (this.type === 'wisp') {
-                    // IA Flotante: Persigue suavemente los ejes del jugador si está en rango
-                    let diffX = player.x - this.x;
-                    let diffY = player.y - this.y;
-                    let dist = Math.sqrt(diffX * diffX + diffY * diffY);
+.color-dot.selected {
+    border-color: #fff;
+    transform: scale(1.15);
+}
 
-                    if (dist < 450) { // Rango de detección activo
-                        this.x += (diffX / dist) * this.speed;
-                        this.y += (diffY / dist) * this.speed;
-                    } else {
-                        // Flotar pasivamente de arriba a abajo usando trigonometría
-                        this.wispAngle += 0.04;
-                        this.y += Math.sin(this.wispAngle) * 0.5;
-                    }
-                }
+/* ==========================================================================
+   3. INTERFAZ DE JUEGO (HUD) Y CONTROLES TÁCTILES
+   ========================================================================== */
+.ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 15px;
+}
 
-                // Verificar colisión directa por contacto contra el Jugador
-                if (player.x < this.x + this.width &&
-                    player.x + player.width > this.x &&
-                    player.y < this.y + this.height &&
-                    player.y + player.height > this.y) {
-                    
-                    player.damage(this.type === 'crawler' ? 20 : 15);
-                }
-            }
+.hud {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
 
-            draw() {
-                ctx.save();
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = this.color;
-                ctx.fillStyle = this.color;
-                
-                let rx = this.x - camera.x;
-                
-                if (this.type === 'crawler') {
-                    // Diseño de pirámide invertida / glitch oscuro
-                    ctx.beginPath();
-                    ctx.moveTo(rx, this.y + this.height);
-                    ctx.lineTo(rx + this.width / 2, this.y);
-                    ctx.lineTo(rx + this.width, this.y + this.height);
-                    ctx.closePath();
-                    ctx.fill();
-                } else {
-                    // Orbes del vacío parpadeantes
-                    ctx.beginPath();
-                    ctx.arc(rx + this.width/2, this.y + this.height/2, this.width/2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.restore();
-            }
-        }
+.hud-card {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 15px;
+    border-radius: 6px;
+    border: 2px solid #3a3a4a;
+    font-size: 15px;
+    font-weight: bold;
+}
 
-        // Clase Item Coleccionable (Esferas de Energía)
-        class Item {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.size = 12;
-                this.pulseTimer = Math.random() * 10;
-                this.collected = false;
-            }
+.hud-card span { color: #00ffcc; }
 
-            update() {
-                this.pulseTimer += 0.1;
-                
-                // Colisión con el radio del jugador
-                let px = player.x + player.width / 2;
-                let py = player.y + player.height / 2;
-                let dist = Math.sqrt(Math.pow(px - this.x, 2) + Math.pow(py - this.y, 2));
+#touch-controls-layer {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    padding-bottom: 10px;
+}
 
-                if (dist < player.width / 2 + this.size) {
-                    this.collected = true;
-                    score += 10;
-                    scoreDisplay.textContent = score;
-                    // Explosión cosmética brillante
-                    createExplosion(this.x, this.y, '#00ffcc', 8);
-                }
-            }
+.joystick-zone {
+    width: 130px;
+    height: 130px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+}
 
-            draw() {
-                ctx.save();
-                let currentSize = this.size + Math.sin(this.pulseTimer) * 3;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00ffcc';
-                ctx.fillStyle = '#ffffff';
-                
-                ctx.beginPath();
-                ctx.arc(this.x - camera.x, this.y, currentSize, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
+.joystick-stick {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transition: transform 0.05s;
+}
 
-        // Sistema de Partículas Livianas
-        function createExplosion(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: (Math.random() - 0.5) * 8,
-                    size: Math.random() * 4 + 2,
-                    alpha: 1,
-                    decay: Math.random() * 0.03 + 0.01,
-                    color: color
-                });
-            }
-        }
+.action-pad {
+    display: flex;
+    gap: 15px;
+    pointer-events: auto;
+}
 
-        function updateAndDrawParticles() {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= p.decay;
+.action-btn {
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
 
-                if (p.alpha <= 0) {
-                    particles.splice(i, 1);
-                    continue;
-                }
+#jump-btn { background: rgba(0, 255, 204, 0.4); border: 3px solid #00ffcc; }
+#shoot-btn { background: rgba(255, 0, 85, 0.4); border: 3px solid #ff0055; }
 
-                ctx.save();
-                ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x - camera.x, p.y, p.size, p.size);
-                ctx.restore();
-            }
-        }
-
-        // ==========================================================================
-        // GENERACIÓN PROCEDURAL CONTINUA (BLOQUE CENTRAL)
-        // ==========================================================================
-        function generateInitialPlatforms() {
-            platforms.length = 0;
-            entities.length = 0;
-            items.length = 0;
-            particles.length = 0;
-            
-            // Plataforma segura en el punto de spawn
-            platforms.push({ x: 0, y: 550, width: 900, height: 170 });
-            
-            // Colocar un par de ítems iniciales sin peligro
-            items.push(new Item(400, 480));
-            items.push(new Item(600, 450));
-
-            let lastX = 900;
-            for (let i = 0; i < 12; i++) {
-                lastX = spawnProceduralSegment(lastX);
-            }
-        }
-
-        function spawnProceduralSegment(lastXPosition) {
-            let width = Math.random() * 220 + 160;
-            let gap = Math.random() * 125 + 95;
-            let y = Math.random() * 180 + 380; // Alturas medias equilibradas
-            
-            let newPlatform = { x: lastXPosition + gap, y: y, width: width, height: 250 };
-            platforms.push(newPlatform);
-
-            // Probabilidad del 70% de spawnear ítems flotantes sobre la plataforma
-            if (Math.random() < 0.7) {
-                let itemsCount = Math.floor(Math.random() * 3) + 1;
-                for (let k = 0; i < itemsCount; i++) {
-                    let itemX = newPlatform.x + (newPlatform.width / (itemsCount + 1)) * (k + 1);
-                    items.push(new Item(itemX, newPlatform.y - 45 - (Math.random() * 40)));
-                }
-            }
-
-            // Probabilidad del 55% de añadir una entidad de peligro enemiga
-            if (Math.random() < 0.55) {
-                let spawnX = newPlatform.x + newPlatform.width / 2;
-                if (Math.random() > 0.4) {
-                    entities.push(new Entity(spawnX, newPlatform.y - 40, 'crawler'));
-                } else {
-                    entities.push(new Entity(spawnX, newPlatform.y - 120, 'wisp'));
-                }
-            }
-
-            return newPlatform.x + newPlatform.width;
-        }
-
-        function updatePlatforms() {
-            let lastPlatform = platforms[platforms.length - 1];
-            // Generar nuevo suelo dinámico si la vista de cámara se aproxima al borde
-            if (player.x + BASE_WIDTH > lastPlatform.x) {
-                spawnProceduralSegment(lastPlatform.x + lastPlatform.width);
-            }
-
-            // Limpieza activa de objetos obsoletos fuera de escena (Evita fugas de memoria en APK)
-            if (platforms.length > 0 && platforms[0].x + platforms[0].width < player.x - BASE_WIDTH) {
-                platforms.shift();
-            }
-            for (let i = entities.length - 1; i >= 0; i--) {
-                if (entities[i].x < player.x - BASE_WIDTH) entities.splice(i, 1);
-            }
-            for (let i = items.length - 1; i >= 0; i--) {
-                if (items[i].x < player.x - BASE_WIDTH || items[i].collected) items.splice(i, 1);
-            }
-        }
-
-        function drawPlatforms() {
-            ctx.save();
-            for (let plat of platforms) {
-                let gradient = ctx.createLinearGradient(0, plat.y, 0, plat.y + 120);
-                gradient.addColorStop(0, '#1f1f2e');
-                gradient.addColorStop(1, '#08080c');
-                
-                ctx.fillStyle = gradient;
-                ctx.strokeStyle = '#3d3d52';
-                ctx.lineWidth = 3;
-                
-                ctx.fillRect(plat.x - camera.x, plat.y, plat.width, plat.height);
-                ctx.strokeRect(plat.x - camera.x, plat.y, plat.width, plat.height);
-            }
-            ctx.restore();
-        }
-
-        // Sistema riguroso de colisiones AABB entre Entidades y Plataformas
-        function checkCollisions() {
-            player.grounded = false;
-
-            for (let plat of platforms) {
-                if (player.x < plat.x + plat.width &&
-                    player.x + player.width > plat.x &&
-                    player.y < plat.y + plat.height &&
-                    player.y + player.height > plat.y) {
-                    
-                    // Comprobación de apoyo superior (Aterrizaje firme)
-                    if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 6) {
-                        player.y = plat.y - player.height;
-                        player.vy = 0;
-                        player.grounded = true;
-                    }
-                }
-            }
-        }
-
-        // Capa escénica de fondo (Filtro Cyberpunk Liminal)
-        function drawBackground() {
-            ctx.fillStyle = '#0a0a0f';
-            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-
-            // Rejilla tridimensional simulada por efecto de movimiento de paralaje
-            ctx.strokeStyle = 'rgba(0, 255, 204, 0.025)';
-            ctx.lineWidth = 1;
-            let gridSize = 70;
-            let offsetX = -(camera.x * 0.25) % gridSize;
-
-            for (let x = offsetX; x < BASE_WIDTH; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, BASE_HEIGHT);
-                ctx.stroke();
-            }
-            
-            // Degradado denso inferior para ocultar cortes geométricos abruptos
-            let fog = ctx.createLinearGradient(0, BASE_HEIGHT - 300, 0, BASE_HEIGHT);
-            fog.addColorStop(0, 'rgba(10, 10, 15, 0)');
-            fog.addColorStop(1, '#050507');
-            ctx.fillStyle = fog;
-            ctx.fillRect(0, BASE_HEIGHT - 300, BASE_WIDTH, 300);
-        }
-
-        // ==========================================================================
-        // BUCLE PRINCIPAL DEL JUEGO DE EJECUCIÓN CONTINUA
-        // ==========================================================================
-        function gameLoop() {
-            if (!gameRunning) return;
-
-            // Renderizar escenario estático base
-            ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-            drawBackground();
-
-            // Actualización lineal del Player
-            player.update();
-            updatePlatforms();
-            checkCollisions();
-
-            // Actualizar y dibujar ítems de recolección
-            for (let item of items) {
-                item.update();
-                item.draw();
-            }
-
-            // Actualizar y dibujar enemigos activos en pantalla
-            for (let entity of entities) {
-                entity.update();
-                entity.draw();
-            }
-
-            // Interpolación de cámara fluida acoplada al personaje principal
-            camera.targetX = player.x - 260;
-            camera.x += (camera.targetX - camera.x) * camera.speed;
-
-            // Dibujar entornos estructurales y geometrías animadas
-            drawPlatforms();
-            player.draw();
-            updateAndDrawParticles();
-
-            // Petición recursiva de actualización de cuadros de video nativos
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Controladores lógicos de las vistas de interfaces de usuario (UI)
-        function startGame() {
-            score = 0;
-            hp = 100;
-            scoreDisplay.textContent = score;
-            hpDisplay.textContent = hp + "%";
-            
-            generateInitialPlatforms();
-            player.resetPosition();
-            
-            startScreen.classList.add('hidden');
-            gameoverScreen.classList.add('hidden');
-            gameRunning = true;
-            gameLoop();
-        }
-
-        function endGame() {
-            gameRunning = false;
-            finalScore.textContent = score;
-            gameoverScreen.classList.remove('hidden');
-        }
-
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
-    </script>
-
+#jump-btn:active { background: rgba(0, 255, 204, 0.7); transform: scale(0.95); }
+#shoot-btn:active { background: rgba(255, 0, 85, 0.7); transform: scale(0.95); }
