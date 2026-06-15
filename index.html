@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Liminal Escape - APK Edition</title>
+    <title>Liminal Zombie Survivor</title>
     <style>
         /* ==========================================================================
-           1. ESTILOS GENERALES (Optimizado para pantallas móviles/APK)
+           1. ESTILOS GENERALES Y CONFIGURACIÓN DE PANTALLA
            ========================================================================== */
         * {
             box-sizing: border-box;
@@ -20,12 +20,11 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #0b0b0b;
+            background-color: #050508;
             font-family: 'Courier New', Courier, monospace;
             color: #ffffff;
         }
 
-        /* Contenedor principal del juego */
         #game-container {
             position: relative;
             width: 100%;
@@ -35,54 +34,14 @@
             align-items: center;
         }
 
-        /* El lienzo del juego (Canvas) */
         canvas {
             display: block;
-            background: #1a1a24;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            background: #0d0d13;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
         }
 
         /* ==========================================================================
-           2. INTERFAZ DE USUARIO (UI)
-           ========================================================================== */
-        .ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Deja pasar los clics al canvas si es necesario */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 15px;
-        }
-
-        /* Marcador de puntos y vida */
-        .hud {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            pointer-events: auto;
-        }
-
-        .hud-card {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: 2px solid #3a3a4a;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px #00ffcc;
-        }
-
-        .hud-card span {
-            color: #00ffcc;
-        }
-
-        /* ==========================================================================
-           3. MENÚS (Inicio y Fin de juego)
+           2. PANTALLAS DE MENÚ (Configuraciones, Idioma, Color)
            ========================================================================== */
         .screen {
             position: absolute;
@@ -90,122 +49,181 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 10, 15, 0.95);
+            background: rgba(10, 10, 15, 0.98);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 10;
-            transition: opacity 0.3s ease;
         }
 
-        .screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .hidden { display: none !important; }
 
         .title {
-            font-size: 42px;
+            font-size: 38px;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 0 0 15px #ff0055;
+            letter-spacing: 2px;
+        }
+
+        .menu-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid #2a2a3a;
+            padding: 20px;
+            border-radius: 12px;
+            width: 85%;
+            max-width: 450px;
             text-align: center;
             margin-bottom: 20px;
-            color: #fff;
-            text-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055;
-            letter-spacing: 3px;
-            animation: pulse 2s infinite;
         }
 
-        .subtitle {
+        .menu-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+        }
+
+        .label-txt {
             font-size: 16px;
-            color: #8a8a9a;
-            margin-bottom: 40px;
-            text-align: center;
-            max-width: 80%;
-            line-height: 1.5;
+            font-weight: bold;
         }
 
+        /* Botones del Menú */
         .btn {
-            padding: 15px 40px;
-            font-size: 20px;
+            padding: 10px 25px;
+            font-size: 16px;
             font-family: inherit;
             background: #ff0055;
             color: white;
             border: none;
-            border-radius: 30px;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
-            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
         }
 
-        .btn:active {
-            transform: scale(0.95);
-            background: #cc0044;
+        .btn-select {
+            padding: 6px 15px;
+            font-size: 14px;
+            background: #222230;
+            border: 2px solid #444460;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-select.active {
+            background: #00ffcc;
+            color: #000;
+            border-color: #00ffcc;
+            font-weight: bold;
+        }
+
+        /* Color Pickers Circulares */
+        .color-picker {
+            display: flex;
+            gap: 10px;
+        }
+
+        .color-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .color-dot.selected {
+            border-color: #fff;
+            transform: scale(1.1);
         }
 
         /* ==========================================================================
-           4. CONTROLES TÁCTILES (Joystick Virtual para Tablet/Móvil)
+           3. INTERFAZ DE JUEGO (HUD) Y CONTROLES TÁCTILES
            ========================================================================== */
-        #touch-controls {
+        .ui-overlay {
             position: absolute;
-            bottom: 30px;
-            left: 30px;
-            width: 140px;
-            height: 140px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 3px solid rgba(255, 255, 255, 0.2);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .hud-card {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 2px solid #3a3a4a;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .hud-card span { color: #00ffcc; }
+
+        /* Controles móviles ajustados para incluir Disparo */
+        #touch-controls-layer {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            padding-bottom: 10px;
+        }
+
+        .joystick-zone {
+            width: 130px;
+            height: 130px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             pointer-events: auto;
-            z-index: 5;
         }
 
-        #joystick-stick {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 0, 85, 0.6);
-            border: 2px solid #ff0055;
+        .joystick-stick {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            position: absolute;
-            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
-            transition: background 0.2s;
         }
 
-        #action-button-container {
-            position: absolute;
-            bottom: 40px;
-            right: 40px;
+        .action-pad {
+            display: flex;
+            gap: 15px;
             pointer-events: auto;
-            z-index: 5;
         }
 
         .action-btn {
-            width: 80px;
-            height: 80px;
-            background: rgba(0, 255, 204, 0.5);
-            border: 3px solid #00ffcc;
+            width: 75px;
+            height: 75px;
             border-radius: 50%;
             color: white;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 14px;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        .action-btn:active {
-            background: rgba(0, 255, 204, 0.8);
-            transform: scale(0.92);
-        }
-
-        /* Animación simple de pulso */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.03); text-shadow: 0 0 15px #ff0055, 0 0 30px #ff0055; }
-            100% { transform: scale(1); }
-        }
+        #jump-btn { background: rgba(0, 255, 204, 0.4); border: 3px solid #00ffcc; }
+        #shoot-btn { background: rgba(255, 0, 85, 0.4); border: 3px solid #ff0055; }
     </style>
 </head>
 <body>
@@ -213,412 +231,478 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
-        <div id="start-screen" class="screen">
-            <h1 class="title">LIMINAL SPACE<br>SURVIVAL</h1>
-            <p class="subtitle">Esquiva las entidades del vacío, recolecta esferas de energía y sobrevive en la niebla infinita.</p>
-            <button class="btn" id="start-btn">INICIAR JUEGO</button>
-        </div>
+        <!-- ==========================================================================
+           MENÚ PRINCIPAL Y CONFIGURACIONES
+           ========================================================================== -->
+        <div id="main-menu" class="screen">
+            <h1 class="title" id="m-title">ZOMBIE LIMINAL</h1>
+            
+            <div class="menu-box">
+                <!-- Selector de Idioma -->
+                <div class="menu-row">
+                    <span class="label-txt" id="lbl-lang">Idioma / Lang:</span>
+                    <div>
+                        <button class="btn-select active" id="lang-es">ES</button>
+                        <button class="btn-select" id="lang-en">EN</button>
+                    </div>
+                </div>
 
-        <div id="gameover-screen" class="screen hidden">
-            <h1 class="title" style="text-shadow: 0 0 10px #ff0000;">CONEXIÓN PERDIDA</h1>
-            <p class="subtitle">Te has desvanecido en el espacio liminal.</p>
-            <p class="subtitle" style="margin-top: -20px;">Puntuación máxima: <span id="final-score" style="color:#00ffcc;">0</span></p>
-            <button class="btn" id="restart-btn" style="background:#00ffcc; color:#000; box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);">REINTENTAR</button>
-        </div>
+                <!-- Selector de Dificultad -->
+                <div class="menu-row">
+                    <span class="label-txt" id="lbl-diff">Dificultad:</span>
+                    <div>
+                        <button class="btn-select active" id="diff-easy">Fácil</button>
+                        <button class="btn-select" id="diff-med">Medio</button>
+                        <button class="btn-select" id="diff-hard">Difícil</button>
+                    </div>
+                </div>
 
-        <div class="ui-overlay">
-            <div class="hud">
-                <div class="hud-card">CUBOS: <span id="score-display">0</span></div>
-                <div class="hud-card">ESTABILIDAD: <span id="hp-display">100%</span></div>
+                <!-- Selector de Color de Personaje -->
+                <div class="menu-row">
+                    <span class="label-txt" id="lbl-color">Color Skin:</span>
+                    <div class="color-picker">
+                        <div class="color-dot selected" style="background: #ff0055;" data-color="#ff0055"></div>
+                        <div class="color-dot" style="background: #00ffcc;" data-color="#00ffcc"></div>
+                        <div class="color-dot" style="background: #ffcc00;" data-color="#ffcc00"></div>
+                        <div class="color-dot" style="background: #a020f0;" data-color="#a020f0"></div>
+                    </div>
+                </div>
             </div>
 
-            <div id="controls-container" style="display: flex; width: 100%; justify-content: space-between; pointer-events: none;">
-                <div id="touch-controls">
-                    <div id="joystick-stick"></div>
+            <button class="btn" id="start-btn">JUGAR / PLAY</button>
+        </div>
+
+        <!-- PANTALLA GAME OVER -->
+        <div id="gameover-screen" class="screen hidden">
+            <h1 class="title" id="go-title" style="color: #ff0000;">GAME OVER</h1>
+            <p class="label-txt" id="go-score-lbl" style="margin-bottom: 30px;">Puntos: <span id="final-score">0</span></p>
+            <button class="btn" id="restart-btn">REINTENTAR</button>
+        </div>
+
+        <!-- INTERFAZ IN-GAME -->
+        <div class="ui-overlay">
+            <div class="hud">
+                <div class="hud-card"><span id="hud-kills">ZOMBIES</span>: <span id="score-display">0</span></div>
+                <div class="hud-card"><span id="hud-hp">VIDA</span>: <span id="hp-display">100%</span></div>
+            </div>
+
+            <div id="touch-controls-layer">
+                <!-- Movimiento -->
+                <div class="joystick-zone" id="joystick-bg">
+                    <div class="joystick-stick" id="joystick-stick"></div>
                 </div>
-                
-                <div id="action-button-container">
-                    <div class="action-btn" id="jump-btn">SALTO</div>
+                <!-- Acción -->
+                <div class="action-pad">
+                    <div class="action-btn" id="shoot-btn">FIRE</div>
+                    <div class="action-btn" id="jump-btn">JUMP</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ==========================================================================
+         MOTOR DE JUEGO COMPLETO (JAVASCRIPT)
+         ========================================================================== -->
     <script>
-        // Configuración del lienzo
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Referencias de la UI
-        const startScreen = document.getElementById('start-screen');
-        const gameoverScreen = document.getElementById('gameover-screen');
-        const startBtn = document.getElementById('start-btn');
-        const restartBtn = document.getElementById('restart-btn');
-        const scoreDisplay = document.getElementById('score-display');
-        const hpDisplay = document.getElementById('hp-display');
-        const finalScore = document.getElementById('final-score');
+        // Configuración de Idiomas locales
+        const TRADUCCIONES = {
+            es: {
+                title: "ZOMBIE LIMINAL", lblLang: "Idioma:", lblDiff: "Dificultad:",
+                lblColor: "Color Skin:", btnStart: "INICIAR JUEGO", goTitle: "CONEXIÓN PERDIDA",
+                goScore: "Zombis eliminados: ", btnRestart: "REINTENTAR", hudKills: "BAJAS", hudHp: "ESTABILIDAD",
+                easy: "Fácil", med: "Medio", hard: "Difícil"
+            },
+            en: {
+                title: "LIMINAL ZOMBIE", lblLang: "Language:", lblDiff: "Difficulty:",
+                lblColor: "Skin Color:", btnStart: "START GAME", goTitle: "CONNECTION LOST",
+                goScore: "Zombies defeated: ", btnRestart: "RETRY", hudKills: "KILLS", hudHp: "STABILITY",
+                easy: "Easy", med: "Medium", hard: "Hard"
+            }
+        };
 
-        // Estado del Juego
+        // Estado de Configuración del usuario
+        let CONFIG = {
+            lang: 'es',
+            difficulty: 'easy',
+            playerColor: '#ff0055'
+        };
+
+        // Variables de balanceo por dificultad
+        let d_zombieSpeed = 1.5;
+        let d_zombieDamage = 15;
+        let d_obstacleCount = 0.3; // Probabilidad de obstáculos peligrosos
+
         let gameRunning = false;
         let score = 0;
         let hp = 100;
-
-        // Configuración de dimensiones adaptables (Diseño Virtual Base de 1280x720)
         const BASE_WIDTH = 1280;
         const BASE_HEIGHT = 720;
-        
-        function resizeCanvas() {
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
+
+        // Cambiar idioma dinámicamente en los textos del menú
+        function aplicarIdioma() {
+            const t = TRADUCCIONES[CONFIG.lang];
+            document.getElementById('m-title').textContent = t.title;
+            document.getElementById('lbl-lang').textContent = t.lblLang;
+            document.getElementById('lbl-diff').textContent = t.lblDiff;
+            document.getElementById('lbl-color').textContent = t.lblColor;
+            document.getElementById('start-btn').textContent = t.btnStart;
+            document.getElementById('go-title').textContent = t.goTitle;
+            document.getElementById('restart-btn').textContent = t.btnRestart;
+            document.getElementById('hud-kills').textContent = t.hudKills;
+            document.getElementById('hud-hp').textContent = t.hudHp;
             
-            // Mantiene la relación de aspecto de pantalla ancha 16:9
-            let scale = Math.min(windowWidth / BASE_WIDTH, windowHeight / BASE_HEIGHT);
-            
-            canvas.width = BASE_WIDTH;
-            canvas.height = BASE_HEIGHT;
-            
-            canvas.style.width = (BASE_WIDTH * scale) + 'px';
-            canvas.style.height = (BASE_HEIGHT * scale) + 'px';
+            document.getElementById('diff-easy').textContent = t.easy;
+            document.getElementById('diff-med').textContent = t.med;
+            document.getElementById('diff-hard').textContent = t.hard;
         }
-        
+
+        // ==========================================================================
+        // GESTIÓN DE EVENTOS DE CONFIGURACIÓN (UI)
+        // ==========================================================================
+        document.getElementById('lang-es').addEventListener('click', () => { CONFIG.lang = 'es'; toggleActiveLang('lang-es', 'lang-en'); aplicarIdioma(); });
+        document.getElementById('lang-en').addEventListener('click', () => { CONFIG.lang = 'en'; toggleActiveLang('lang-en', 'lang-es'); aplicarIdioma(); });
+
+        function toggleActiveLang(act, inact) {
+            document.getElementById(act).classList.add('active');
+            document.getElementById(inact).classList.remove('active');
+        }
+
+        // Configuración de dificultades
+        const diffBtns = {
+            easy: document.getElementById('diff-easy'),
+            med: document.getElementById('diff-med'),
+            hard: document.getElementById('diff-hard')
+        };
+        Object.keys(diffBtns).forEach(key => {
+            diffBtns[key].addEventListener('click', () => {
+                Object.values(diffBtns).forEach(b => b.classList.remove('active'));
+                diffBtns[key].classList.add('active');
+                CONFIG.difficulty = key;
+                
+                // Ajustar variables del motor en función de la dificultad escogida
+                if(key === 'easy') { d_zombieSpeed = 1.2; d_zombieDamage = 10; d_obstacleCount = 0.2; }
+                if(key === 'med') { d_zombieSpeed = 2.2; d_zombieDamage = 20; d_obstacleCount = 0.45; }
+                if(key === 'hard') { d_zombieSpeed = 3.5; d_zombieDamage = 35; d_obstacleCount = 0.7; }
+            });
+        });
+
+        // Selector de color cosmético
+        const dots = document.querySelectorAll('.color-dot');
+        dots.forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                dots.forEach(d => d.classList.remove('selected'));
+                e.target.classList.add('selected');
+                CONFIG.playerColor = e.target.getAttribute('data-color');
+            });
+        });
+
+        function resizeCanvas() {
+            let scale = Math.min(window.innerWidth / BASE_WIDTH, window.innerHeight / BASE_HEIGHT);
+            canvas.width = BASE_WIDTH; canvas.height = BASE_HEIGHT;
+            canvas.style.width = (BASE_WIDTH * scale) + 'px'; canvas.style.height = (BASE_HEIGHT * scale) + 'px';
+        }
         window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', resizeCanvas);
         resizeCanvas();
 
         // ==========================================================================
-        // SISTEMA DE CONTROLES (Teclado + Pantalla Táctil Completa)
+        // SISTEMA DE CONTROLES MULTI-TOUCH Y TECLADO
         // ==========================================================================
-        const keys = { left: false, right: false, up: false };
-        
-        // Controles de teclado para pruebas en PC
-        window.addEventListener('keydown', (e) => {
-            if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
-            if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
-            if(e.code === 'KeyW' || e.code === 'Space' || e.code === 'ArrowUp') keys.up = true;
-        });
+        const keys = { left: false, right: false, up: false, shoot: false };
+        let facingDirection = 1; // 1 = Derecha, -1 = Izquierda
 
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.left = true; facingDirection = -1; }
+            if(e.code === 'KeyD' || e.code === 'ArrowRight') { keys.right = true; facingDirection = 1; }
+            if(e.code === 'KeyW' || e.code === 'Space') keys.up = true;
+            if(e.code === 'KeyF') fireBullet();
+        });
         window.addEventListener('keyup', (e) => {
             if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
             if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
-            if(e.code === 'KeyW' || e.code === 'Space' || e.code === 'ArrowUp') keys.up = false;
+            if(e.code === 'KeyW' || e.code === 'Space') keys.up = false;
         });
 
-        // Lógica del Joystick Táctil
-        const joystick = document.getElementById('touch-controls');
+        // Joystick e Interfaz móvil
+        const joystick = document.getElementById('joystick-bg');
         const stick = document.getElementById('joystick-stick');
-        const jumpBtn = document.getElementById('jump-btn');
-        
-        let joystickActive = false;
-        let touchStartX = 0;
-        let touchStartY = 0;
-        const maxRadius = 50; // Límite de arrastre del stick en píxeles
+        let joyActive = false; let jsX = 0; let jsY = 0;
 
         joystick.addEventListener('touchstart', (e) => {
-            joystickActive = true;
-            const touch = e.touches[0];
-            const rect = joystick.getBoundingClientRect();
-            touchStartX = rect.left + rect.width / 2;
-            touchStartY = rect.top + rect.height / 2;
-        }, { passive: true });
-
+            joyActive = true;
+            let r = joystick.getBoundingClientRect();
+            jsX = r.left + r.width/2; jsY = r.top + r.height/2;
+        });
         window.addEventListener('touchmove', (e) => {
-            if (!joystickActive) return;
-            
-            // Buscar el toque que originó el joystick
-            let touch = null;
-            for(let i=0; i<e.touches.length; i++) {
-                if(e.touches[i].target === joystick || e.touches[i].target === stick) {
-                    touch = e.touches[i];
-                    break;
-                }
-            }
-            if(!touch) touch = e.touches[0];
-
-            let deltaX = touch.clientX - touchStartX;
-            let deltaY = touch.clientY - touchStartY;
-            let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            if (distance > maxRadius) {
-                deltaX = (deltaX / distance) * maxRadius;
-                deltaY = (deltaY / distance) * maxRadius;
-            }
-
-            stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-
-            // Convertir coordenadas del joystick a comandos de movimiento
-            keys.left = deltaX < -15;
-            keys.right = deltaX > 15;
-        }, { passive: false });
-
-        window.addEventListener('touchend', (e) => {
-            // Si ya no hay toques activos en la zona del joystick, resetearlo
-            if (e.touches.length === 0 || !joystickActive) {
-                joystickActive = false;
-                stick.style.transform = 'translate(0px, 0px)';
-                keys.left = false;
-                keys.right = false;
+            if(!joyActive) return;
+            let t = e.touches[0];
+            let dx = t.clientX - jsX;
+            let dist = Math.abs(dx);
+            if(dist > 15) {
+                keys.left = dx < 0; keys.right = dx > 0;
+                facingDirection = dx > 0 ? 1 : -1;
+                stick.style.transform = `translate(${dx > 0 ? 25 : -25}px, 0px)`;
             }
         });
+        window.addEventListener('touchend', () => {
+            joyActive = false; keys.left = false; keys.right = false;
+            stick.style.transform = 'translate(0px,0px)';
+        });
 
-        // Botón de salto táctil
-        jumpBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            keys.up = true;
-        });
-        jumpBtn.addEventListener('touchend', () => {
-            keys.up = false;
-        });
+        document.getElementById('jump-btn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.up = true; });
+        document.getElementById('jump-btn').addEventListener('touchend', () => keys.up = false);
+        document.getElementById('shoot-btn').addEventListener('touchstart', (e) => { e.preventDefault(); fireBullet(); });
 
         // ==========================================================================
-        // FÍSICAS Y OBJETOS DEL JUEGO
+        // OBJETOS DEL JUEGO (PLAYER, ARMAS, ENEMIGOS, OBSTÁCULOS)
         // ==========================================================================
+        const camera = { x: 0, targetX: 0, speed: 0.08 };
         
-        // Cámara de seguimiento suave
-        const camera = {
-            x: 0,
-            y: 0,
-            targetX: 0,
-            speed: 0.1
-        };
-
-        // El Jugador (Estilo cubo futurista / glitch)
         const player = {
-            x: 200,
-            y: 400,
-            width: 45,
-            height: 45,
-            vx: 0,
-            vy: 0,
-            speed: 8,
-            gravity: 0.6,
-            jumpForce: -15,
-            grounded: false,
-            color: '#ff0055',
+            x: 200, y: 300, width: 45, height: 45, vx: 0, vy: 0,
+            speed: 7.5, gravity: 0.65, jumpForce: -14, grounded: false,
+            invulnerable: 0,
             
             update() {
-                // Aplicar movimiento horizontal
+                if (this.invulnerable > 0) this.invulnerable--;
                 if (keys.left) this.vx = -this.speed;
                 else if (keys.right) this.vx = this.speed;
-                else this.vx *= 0.8; // Fricción suave
+                else this.vx *= 0.8;
 
-                // Aplicar gravedad
                 this.vy += this.gravity;
+                if (keys.up && this.grounded) { this.vy = this.jumpForce; this.grounded = false; }
 
-                // Salto (solo si está en el suelo)
-                if (keys.up && this.grounded) {
-                    this.vy = this.jumpForce;
-                    this.grounded = false;
-                }
+                this.x += this.vx; this.y += this.vy;
 
-                // Actualizar posiciones
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Evitar caer al vacío absoluto por debajo de la pantalla
-                if (this.y > BASE_HEIGHT + 200) {
-                    this.damage(25);
-                    this.resetPosition();
-                }
+                if (this.y > BASE_HEIGHT + 150) { this.damage(25); this.resetPosition(); }
             },
-
-            damage(amount) {
-                hp -= amount;
-                if(hp <= 0) {
-                    hp = 0;
-                    endGame();
-                }
-                hpDisplay.textContent = hp + "%";
+            damage(amt) {
+                if(this.invulnerable > 0) return;
+                hp -= amt; this.invulnerable = 40;
+                if(hp <= 0) { hp = 0; endGame(); }
+                document.getElementById('hp-display').textContent = hp + "%";
             },
-
             resetPosition() {
-                this.x = 200;
-                this.y = 100;
-                this.vx = 0;
-                this.vy = 0;
+                this.x = platforms[0] ? platforms[0].x + 40 : 200;
+                this.y = 200; this.vx = 0; this.vy = 0;
             },
-
             draw() {
+                if (this.invulnerable > 0 && Math.floor(this.invulnerable / 4) % 2 === 0) return;
                 ctx.save();
-                // Efecto de brillo de neón
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
-                ctx.fillStyle = this.color;
-                
-                // Dibujar cuerpo del personaje
+                ctx.fillStyle = CONFIG.playerColor;
+                ctx.shadowBlur = 15; ctx.shadowColor = CONFIG.playerColor;
                 ctx.fillRect(this.x - camera.x, this.y, this.width, this.height);
                 
-                // Detalle del "ojo" o visor central (Estética Dreamcore)
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(this.x - camera.x + 12, this.y + 12, 20, 10);
+                // Dibujar el arma (pistola pixelada apuntando al frente)
+                ctx.fillStyle = '#666';
+                let gunX = facingDirection === 1 ? this.x - camera.x + this.width : this.x - camera.x - 15;
+                ctx.fillRect(gunX, this.y + 20, 15, 8);
                 ctx.restore();
             }
         };
 
-        // Generador de Plataformas Procedurales (Mundo Infinito)
         const platforms = [];
-        
-        function generateInitialPlatforms() {
-            platforms.length = 0; // Limpiar array
+        const bullets = [];
+        const zombies = [];
+        const obstacles = []; // Pinchos/Obstáculos liminales peligrosos
+
+        function fireBullet() {
+            let bX = facingDirection === 1 ? player.x + player.width : player.x - 10;
+            bullets.push({ x: bX, y: player.y + 22, vx: facingDirection * 16, width: 12, height: 5 });
+        }
+
+        // Generador Procedural Adaptado a Dificultades
+        function generateInitialWorld() {
+            platforms.length = 0; bullets.length = 0; zombies.length = 0; obstacles.length = 0;
+            platforms.push({ x: 0, y: 560, width: 900, height: 160 });
             
-            // Plataforma base inicial
-            platforms.push({ x: 0, y: 550, width: 800, height: 170 });
-            
-            // Generar los primeros bloques en cadena hacia la derecha
-            let lastX = 800;
-            for (let i = 0; i < 15; i++) {
-                let width = Math.random() * 200 + 150;
-                let height = 200;
+            let lastX = 900;
+            for(let i=0; i<10; i++) {
+                let w = Math.random() * 200 + 200;
+                let gap = Math.random() * 110 + 90;
+                let y = Math.random() * 150 + 400;
+                let plat = { x: lastX + gap, y: y, width: w, height: 200 };
+                platforms.push(plat);
+
+                // Spawnear Obstáculos de pinchos condicionado por la dificultad
+                if (Math.random() < d_obstacleCount) {
+                    obstacles.push({ x: plat.x + (plat.width/2) - 15, y: plat.y - 25, width: 30, height: 25 });
+                }
+
+                // Spawnear Zombis
+                if (Math.random() * 1.2 > 0.4) {
+                    zombies.push({
+                        x: plat.x + plat.width - 50, y: plat.y - 45, width: 40, height: 45,
+                        vx: -d_zombieSpeed, hp: CONFIG.difficulty === 'hard' ? 2 : 1
+                    });
+                }
+                lastX = plat.x + plat.width;
+            }
+        }
+
+        function updateWorld() {
+            let lastPlat = platforms[platforms.length - 1];
+            if (player.x + BASE_WIDTH > lastPlat.x) {
+                let w = Math.random() * 200 + 200;
                 let gap = Math.random() * 120 + 90;
-                let y = Math.random() * 200 + 400; // Alturas variables
-                
-                platforms.push({
-                    x: lastX + gap,
-                    y: y,
-                    width: width,
-                    height: height
-                });
-                lastX = lastX + gap + width;
+                let y = Math.random() * 150 + 400;
+                let nPlat = { x: lastPlat.x + lastPlat.width + gap, y: y, width: w, height: 200 };
+                platforms.push(nPlat);
+
+                if (Math.random() < d_obstacleCount) {
+                    obstacles.push({ x: nPlat.x + 40, y: nPlat.y - 25, width: 35, height: 25 });
+                }
+                if (Math.random() > 0.3) {
+                    zombies.push({
+                        x: nPlat.x + nPlat.width - 40, y: nPlat.y - 45, width: 40, height: 45,
+                        vx: -d_zombieSpeed, hp: CONFIG.difficulty === 'hard' ? 2 : 1
+                    });
+                }
             }
+
+            // Limpieza activa de entidades obsoletas detrás de la cámara
+            if(platforms[0] && platforms[0].x + platforms[0].width < player.x - BASE_WIDTH) platforms.shift();
+            for(let i=zombies.length-1; i>=0; i--) { if(zombies[i].x < player.x - BASE_WIDTH) zombies.splice(i,1); }
+            for(let i=obstacles.length-1; i>=0; i--) { if(obstacles[i].x < player.x - BASE_WIDTH) obstacles.splice(i,1); }
         }
 
-        function updatePlatforms() {
-            // Si el jugador se acerca al final de las plataformas generadas, creamos más
-            let lastPlatform = platforms[platforms.length - 1];
-            if (player.x + BASE_WIDTH > lastPlatform.x) {
-                let width = Math.random() * 200 + 150;
-                let gap = Math.random() * 130 + 100;
-                let y = Math.random() * 200 + 400;
-                platforms.push({
-                    x: lastPlatform.x + lastPlatform.width + gap,
-                    y: y,
-                    width: width,
-                    height: 200
-                });
-            }
-
-            // Optimización: Eliminar plataformas que quedaron muy atrás
-            if (platforms[0].x + platforms[0].width < player.x - BASE_WIDTH) {
-                platforms.shift();
-            }
-        }
-
-        function drawPlatforms() {
-            ctx.save();
-            for (let plat of platforms) {
-                // Color degradado para simular niebla y profundidad infinita
-                let gradient = ctx.createLinearGradient(0, plat.y, 0, plat.y + plat.height);
-                gradient.addColorStop(0, '#2e2e3a');
-                gradient.addColorStop(1, '#0f0f14');
-                
-                ctx.fillStyle = gradient;
-                ctx.strokeStyle = '#4a4a5a';
-                ctx.lineWidth = 3;
-                
-                ctx.fillRect(plat.x - camera.x, plat.y, plat.width, plat.height);
-                ctx.strokeRect(plat.x - camera.x, plat.y, plat.width, plat.height);
-            }
-            ctx.restore();
-        }
-
-        // Sistema de colisiones básicas AABB
+        // Físicas, Colisiones y Daños Cruzados
         function checkCollisions() {
             player.grounded = false;
 
+            // Colisión de Jugador con Suelo
             for (let plat of platforms) {
-                // Verificar colisión en el eje X e Y
-                if (player.x < plat.x + plat.width &&
-                    player.x + player.width > plat.x &&
-                    player.y < plat.y + plat.height &&
-                    player.y + player.height > plat.y) {
-                    
-                    // Colisión por arriba de la plataforma
-                    if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 4) {
-                        player.y = plat.y - player.height;
-                        player.vy = 0;
-                        player.grounded = true;
+                if (player.x < plat.x + plat.width && player.x + player.width > plat.x &&
+                    player.y + player.height >= plat.y && player.y + player.height - player.vy <= plat.y + 6) {
+                    player.y = plat.y - player.height; player.vy = 0; player.grounded = true;
+                }
+            }
+
+            // Colisión con Obstáculos (Pinchos verdes radiactivos)
+            for(let obs of obstacles) {
+                if (player.x < obs.x + obs.width && player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height && player.y + player.height > obs.y) {
+                    player.damage(d_zombieDamage); // Los obstáculos causan daño directo según la dificultad
+                }
+            }
+
+            // Gestión de Balas vs Zombis
+            for(let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i]; b.x += b.vx;
+                let bulletHit = false;
+
+                for(let j = zombies.length - 1; j >= 0; j--) {
+                    let z = zombies[j];
+                    if (b.x < z.x + z.width && b.x + b.width > z.x && b.y < z.y + z.height && b.y + b.height > z.y) {
+                        z.hp--; bulletHit = true;
+                        if(z.hp <= 0) { zombies.splice(j, 1); score++; document.getElementById('score-display').textContent = score; }
+                        break;
                     }
+                }
+                if(bulletHit || Math.abs(b.x - player.x) > BASE_WIDTH) bullets.splice(i, 1);
+            }
+
+            // Comportamiento e impacto de Zombis
+            for(let z of zombies) {
+                // IA básica de persecución en plataformas
+                z.x += z.vx;
+                for (let plat of platforms) {
+                    if (z.x + z.width > plat.x && z.x < plat.x + plat.width) {
+                        if (z.x <= plat.x) z.vx = d_zombieSpeed;
+                        if (z.x + z.width >= plat.x + plat.width) z.vx = -d_zombieSpeed;
+                    }
+                }
+
+                // Ataque al jugador
+                if (player.x < z.x + z.width && player.x + player.width > z.x &&
+                    player.y < z.y + z.height && player.y + player.height > z.y) {
+                    player.damage(d_zombieDamage);
                 }
             }
         }
 
-        // Fondo Estilo Neblina Liminal (Líneas de cuadrícula en perspectiva)
-        function drawBackground() {
-            ctx.fillStyle = '#14141c';
-            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+        // ==========================================================================
+        // RENDERIZADO GRÁFICO (DIBUJO)
+        // ==========================================================================
+        function drawScene() {
+            ctx.fillStyle = '#09090d'; ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-            // Dibujar cuadrícula distante que se mueve más lento (Efecto Parallax)
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-            ctx.lineWidth = 1;
-            let gridSize = 60;
-            let offsetX = -(camera.x * 0.3) % gridSize;
-
-            for (let x = offsetX; x < BASE_WIDTH; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, BASE_HEIGHT);
-                ctx.stroke();
+            // Plataformas
+            for(let plat of platforms) {
+                ctx.fillStyle = '#1b1b26'; ctx.strokeStyle = '#33334c'; ctx.lineWidth = 3;
+                ctx.fillRect(plat.x - camera.x, plat.y, plat.width, plat.height);
+                ctx.strokeRect(plat.x - camera.x, plat.y, plat.width, plat.height);
             }
-            
-            // Efecto de neblina ambiental en la parte inferior
-            let fog = ctx.createLinearGradient(0, BASE_HEIGHT - 250, 0, BASE_HEIGHT);
-            fog.addColorStop(0, 'rgba(20, 20, 28, 0)');
-            fog.addColorStop(1, 'rgba(11, 11, 11, 0.95)');
-            ctx.fillStyle = fog;
-            ctx.fillRect(0, BASE_HEIGHT - 250, BASE_WIDTH, 250);
+
+            // Obstáculos Peligrosos (Triángulos/Pinchos neón)
+            for(let obs of obstacles) {
+                ctx.save();
+                ctx.fillStyle = '#39ff14'; ctx.shadowBlur = 10; ctx.shadowColor = '#39ff14';
+                ctx.beginPath();
+                ctx.moveTo(obs.x - camera.x, obs.y + obs.height);
+                ctx.lineTo(obs.x + obs.width/2 - camera.x, obs.y);
+                ctx.lineTo(obs.x + obs.width - camera.x, obs.y + obs.height);
+                ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+
+            // Balas de luz
+            ctx.fillStyle = '#fffb00';
+            for(let b of bullets) { ctx.fillRect(b.x - camera.x, b.y, b.width, b.height); }
+
+            // Zombis (Bloques verdes oscuros mutantes)
+            for(let z of zombies) {
+                ctx.save();
+                ctx.fillStyle = '#2e7d32'; ctx.shadowBlur = 8; ctx.shadowColor = '#1b5e20';
+                ctx.fillRect(z.x - camera.x, z.y, z.width, z.height);
+                // Ojos brillantes del zombi
+                ctx.fillStyle = '#ff1100';
+                let eyeX = z.vx > 0 ? z.x - camera.x + z.width - 12 : z.x - camera.x + 4;
+                ctx.fillRect(eyeX, z.y + 10, 8, 6);
+                ctx.restore();
+            }
+
+            player.draw();
         }
 
-        // ==========================================================================
-        // BUCLE PRINCIPAL DEL JUEGO
-        // ==========================================================================
         function gameLoop() {
             if (!gameRunning) return;
-
-            // 1. Limpiar pantalla e imágen de fondo
-            ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-            drawBackground();
-
-            // 2. Actualizar estados del jugador y mundo
+            updateWorld();
             player.update();
-            updatePlatforms();
             checkCollisions();
 
-            // 3. Suavizado de cámara enfocada en el jugador
-            camera.targetX = player.x - 300;
+            camera.targetX = player.x - 280;
             camera.x += (camera.targetX - camera.x) * camera.speed;
 
-            // 4. Renderizar elementos gráficos
-            drawPlatforms();
-            player.draw();
-
-            // Llamar al siguiente frame de animación
+            drawScene();
             requestAnimationFrame(gameLoop);
         }
 
-        // Controladores de los Menús
         function startGame() {
-            score = 0;
-            hp = 100;
-            scoreDisplay.textContent = score;
-            hpDisplay.textContent = hp + "%";
-            
+            score = 0; hp = 100;
+            document.getElementById('score-display').textContent = score;
+            document.getElementById('hp-display').textContent = hp + "%";
+            generateInitialWorld();
             player.resetPosition();
-            generateInitialPlatforms();
-            
-            startScreen.classList.add('hidden');
-            gameoverScreen.classList.add('hidden');
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
             gameRunning = true;
             gameLoop();
         }
 
         function endGame() {
             gameRunning = false;
-            finalScore.textContent = score;
-            gameoverScreen.classList.remove('hidden');
+            const t = TRADUCCIONES[CONFIG.lang];
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('go-score-lbl').innerHTML = `${t.goScore} <span style="color:#00ffcc;">${score}</span>`;
+            document.getElementById('gameover-screen').classList.remove('hidden');
         }
 
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+        aplicarIdioma(); // Configurar textos iniciales por defecto
     </script>
 </body>
 </html>
-
