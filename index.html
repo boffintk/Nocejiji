@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Liminal Escape - APK Edition</title>
+    <style>
+        /* ==========================================================================
+           1. ESTILOS GENERALES (Optimizado para pantallas móviles/APK)
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0b0b;
+            font-family: 'Courier New', Courier, monospace;
+            color: #ffffff;
+        }
+
+        /* Contenedor principal del juego */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* El lienzo del juego (Canvas) */
+        canvas {
+            display: block;
+            background: #1a1a24;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        /* ==========================================================================
+           2. INTERFAZ DE USUARIO (UI)
+           ========================================================================== */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Deja pasar los clics al canvas si es necesario */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+        }
+
+        /* Marcador de puntos y vida */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            pointer-events: auto;
+        }
+
+        .hud-card {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid #3a3a4a;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+
+        .hud-card span {
+            color: #00ffcc;
+        }
+
+        /* ==========================================================================
+           3. MENÚS (Inicio y Fin de juego)
+           ========================================================================== */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        .screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .title {
+            font-size: 42px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
+            text-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #8a8a9a;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            font-family: inherit;
+            background: #ff0055;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            background: #cc0044;
+        }
+
+        /* ==========================================================================
+           4. CONTROLES TÁCTILES (Joystick Virtual para Tablet/Móvil)
+           ========================================================================== */
+        #touch-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 140px;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 5;
+        }
+
+        #joystick-stick {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 0, 85, 0.6);
+            border: 2px solid #ff0055;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+            transition: background 0.2s;
+        }
+
+        #action-button-container {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            pointer-events: auto;
+            z-index: 5;
+        }
+
+        .action-btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 255, 204, 0.5);
+            border: 3px solid #00ffcc;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+
+        .action-btn:active {
+            background: rgba(0, 255, 204, 0.8);
+            transform: scale(0.92);
+        }
+
+        /* Animación simple de pulso */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); text-shadow: 0 0 15px #ff0055, 0 0 30px #ff0055; }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="start-screen" class="screen">
+            <h1 class="title">LIMINAL SPACE<br>SURVIVAL</h1>
+            <p class="subtitle">Esquiva las entidades del vacío, recolecta esferas de energía y sobrevive en la niebla infinita.</p>
+            <button class="btn" id="start-btn">INICIAR JUEGO</button>
+        </div>
+
+        <div id="gameover-screen" class="screen hidden">
+            <h1 class="title" style="text-shadow: 0 0 10px #ff0000;">CONEXIÓN PERDIDA</h1>
+            <p class="subtitle">Te has desvanecido en el espacio liminal.</p>
+            <p class="subtitle" style="margin-top: -20px;">Puntuación máxima: <span id="final-score" style="color:#00ffcc;">0</span></p>
+            <button class="btn" id="restart-btn" style="background:#00ffcc; color:#000; box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);">REINTENTAR</button>
+        </div>
+
+        <div class="ui-overlay">
+            <div class="hud">
+                <div class="hud-card">CUBOS: <span id="score-display">0</span></div>
+                <div class="hud-card">ESTABILIDAD: <span id="hp-display">100%</span></div>
+            </div>
+
+            <div id="controls-container" style="display: flex; width: 100%; justify-content: space-between; pointer-events: none;">
+                <div id="touch-controls">
+                    <div id="joystick-stick"></div>
+                </div>
+                
+                <div id="action-button-container">
+                    <div class="action-btn" id="jump-btn">SALTO</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del lienzo
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Referencias de la UI
+        const startScreen = document.getElementById('start-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const scoreDisplay = document.getElementById('score-display');
+        const hpDisplay = document.getElementById('hp-display');
+        const finalScore = document.getElementById('final-score');
+
+        // Estado del Juego
+        let gameRunning = false;
+        let score = 0;
+        let hp = 100;
+
+        // Configuración de dimensiones adaptables (Diseño Virtual Base de 1280x720)
+        const BASE_WIDTH = 1280;
+        const BASE_HEIGHT = 720;
+        
+        function resizeCanvas() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            // Mantiene la relación de aspecto de pantalla ancha 16:9
+            let scale = Math.min(windowWidth / BASE_WIDTH, windowHeight / BASE_HEIGHT);
+            
+            canvas.width = BASE_WIDTH;
+            canvas.height = BASE_HEIGHT;
+            
+            canvas.style.width = (BASE_WIDTH * scale) + 'px';
+            canvas.style.height = (BASE_HEIGHT * scale) + 'px';
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+        resizeCanvas();
+
+        // ==========================================================================
+        // SISTEMA DE CONTROLES (Teclado + Pantalla Táctil Completa)
+        // ==========================================================================
+        const keys = { left: false, right: false, up: false };
+        
+        // Controles de teclado para pruebas en PC
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+            if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+            if(e.code === 'KeyW' || e.code === 'Space' || e.code === 'ArrowUp') keys.up = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+            if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+            if(e.code === 'KeyW' || e.code === 'Space' || e.code === 'ArrowUp') keys.up = false;
+        });
+
+        // Lógica del Joystick Táctil
+        const joystick = document.getElementById('touch-controls');
+        const stick = document.getElementById('joystick-stick');
+        const jumpBtn = document.getElementById('jump-btn');
+        
+        let joystickActive = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const maxRadius = 50; // Límite de arrastre del stick en píxeles
+
+        joystick.addEventListener('touchstart', (e) => {
+            joystickActive = true;
+            const touch = e.touches[0];
+            const rect = joystick.getBoundingClientRect();
+            touchStartX = rect.left + rect.width / 2;
+            touchStartY = rect.top + rect.height / 2;
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            
+            // Buscar el toque que originó el joystick
+            let touch = null;
+            for(let i=0; i<e.touches.length; i++) {
+                if(e.touches[i].target === joystick || e.touches[i].target === stick) {
+                    touch = e.touches[i];
+                    break;
+                }
+            }
+            if(!touch) touch = e.touches[0];
+
+            let deltaX = touch.clientX - touchStartX;
+            let deltaY = touch.clientY - touchStartY;
+            let distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            if (distance > maxRadius) {
+                deltaX = (deltaX / distance) * maxRadius;
+                deltaY = (deltaY / distance) * maxRadius;
+            }
+
+            stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+            // Convertir coordenadas del joystick a comandos de movimiento
+            keys.left = deltaX < -15;
+            keys.right = deltaX > 15;
+        }, { passive: false });
+
+        window.addEventListener('touchend', (e) => {
+            // Si ya no hay toques activos en la zona del joystick, resetearlo
+            if (e.touches.length === 0 || !joystickActive) {
+                joystickActive = false;
+                stick.style.transform = 'translate(0px, 0px)';
+                keys.left = false;
+                keys.right = false;
+            }
+        });
+
+        // Botón de salto táctil
+        jumpBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.up = true;
+        });
+        jumpBtn.addEventListener('touchend', () => {
+            keys.up = false;
+        });
+
+        // ==========================================================================
+        // FÍSICAS Y OBJETOS DEL JUEGO
+        // ==========================================================================
+        
+        // Cámara de seguimiento suave
+        const camera = {
+            x: 0,
+            y: 0,
+            targetX: 0,
+            speed: 0.1
+        };
+
+        // El Jugador (Estilo cubo futurista / glitch)
+        const player = {
+            x: 200,
+            y: 400,
+            width: 45,
+            height: 45,
+            vx: 0,
+            vy: 0,
+            speed: 8,
+            gravity: 0.6,
+            jumpForce: -15,
+            grounded: false,
+            color: '#ff0055',
+            
+            update() {
+                // Aplicar movimiento horizontal
+                if (keys.left) this.vx = -this.speed;
+                else if (keys.right) this.vx = this.speed;
+                else this.vx *= 0.8; // Fricción suave
+
+                // Aplicar gravedad
+                this.vy += this.gravity;
+
+                // Salto (solo si está en el suelo)
+                if (keys.up && this.grounded) {
+                    this.vy = this.jumpForce;
+                    this.grounded = false;
+                }
+
+                // Actualizar posiciones
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Evitar caer al vacío absoluto por debajo de la pantalla
+                if (this.y > BASE_HEIGHT + 200) {
+                    this.damage(25);
+                    this.resetPosition();
+                }
+            },
+
+            damage(amount) {
+                hp -= amount;
+                if(hp <= 0) {
+                    hp = 0;
+                    endGame();
+                }
+                hpDisplay.textContent = hp + "%";
+            },
+
+            resetPosition() {
+                this.x = 200;
+                this.y = 100;
+                this.vx = 0;
+                this.vy = 0;
+            },
+
+            draw() {
+                ctx.save();
+                // Efecto de brillo de neón
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                
+                // Dibujar cuerpo del personaje
+                ctx.fillRect(this.x - camera.x, this.y, this.width, this.height);
+                
+                // Detalle del "ojo" o visor central (Estética Dreamcore)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(this.x - camera.x + 12, this.y + 12, 20, 10);
+                ctx.restore();
+            }
+        };
+
+        // Generador de Plataformas Procedurales (Mundo Infinito)
+        const platforms = [];
+        
+        function generateInitialPlatforms() {
+            platforms.length = 0; // Limpiar array
+            
+            // Plataforma base inicial
+            platforms.push({ x: 0, y: 550, width: 800, height: 170 });
+            
+            // Generar los primeros bloques en cadena hacia la derecha
+            let lastX = 800;
+            for (let i = 0; i < 15; i++) {
+                let width = Math.random() * 200 + 150;
+                let height = 200;
+                let gap = Math.random() * 120 + 90;
+                let y = Math.random() * 200 + 400; // Alturas variables
+                
+                platforms.push({
+                    x: lastX + gap,
+                    y: y,
+                    width: width,
+                    height: height
+                });
+                lastX = lastX + gap + width;
+            }
+        }
+
+        function updatePlatforms() {
+            // Si el jugador se acerca al final de las plataformas generadas, creamos más
+            let lastPlatform = platforms[platforms.length - 1];
+            if (player.x + BASE_WIDTH > lastPlatform.x) {
+                let width = Math.random() * 200 + 150;
+                let gap = Math.random() * 130 + 100;
+                let y = Math.random() * 200 + 400;
+                platforms.push({
+                    x: lastPlatform.x + lastPlatform.width + gap,
+                    y: y,
+                    width: width,
+                    height: 200
+                });
+            }
+
+            // Optimización: Eliminar plataformas que quedaron muy atrás
+            if (platforms[0].x + platforms[0].width < player.x - BASE_WIDTH) {
+                platforms.shift();
+            }
+        }
+
+        function drawPlatforms() {
+            ctx.save();
+            for (let plat of platforms) {
+                // Color degradado para simular niebla y profundidad infinita
+                let gradient = ctx.createLinearGradient(0, plat.y, 0, plat.y + plat.height);
+                gradient.addColorStop(0, '#2e2e3a');
+                gradient.addColorStop(1, '#0f0f14');
+                
+                ctx.fillStyle = gradient;
+                ctx.strokeStyle = '#4a4a5a';
+                ctx.lineWidth = 3;
+                
+                ctx.fillRect(plat.x - camera.x, plat.y, plat.width, plat.height);
+                ctx.strokeRect(plat.x - camera.x, plat.y, plat.width, plat.height);
+            }
+            ctx.restore();
+        }
+
+        // Sistema de colisiones básicas AABB
+        function checkCollisions() {
+            player.grounded = false;
+
+            for (let plat of platforms) {
+                // Verificar colisión en el eje X e Y
+                if (player.x < plat.x + plat.width &&
+                    player.x + player.width > plat.x &&
+                    player.y < plat.y + plat.height &&
+                    player.y + player.height > plat.y) {
+                    
+                    // Colisión por arriba de la plataforma
+                    if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 4) {
+                        player.y = plat.y - player.height;
+                        player.vy = 0;
+                        player.grounded = true;
+                    }
+                }
+            }
+        }
+
+        // Fondo Estilo Neblina Liminal (Líneas de cuadrícula en perspectiva)
+        function drawBackground() {
+            ctx.fillStyle = '#14141c';
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+            // Dibujar cuadrícula distante que se mueve más lento (Efecto Parallax)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            let gridSize = 60;
+            let offsetX = -(camera.x * 0.3) % gridSize;
+
+            for (let x = offsetX; x < BASE_WIDTH; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, BASE_HEIGHT);
+                ctx.stroke();
+            }
+            
+            // Efecto de neblina ambiental en la parte inferior
+            let fog = ctx.createLinearGradient(0, BASE_HEIGHT - 250, 0, BASE_HEIGHT);
+            fog.addColorStop(0, 'rgba(20, 20, 28, 0)');
+            fog.addColorStop(1, 'rgba(11, 11, 11, 0.95)');
+            ctx.fillStyle = fog;
+            ctx.fillRect(0, BASE_HEIGHT - 250, BASE_WIDTH, 250);
+        }
+
+        // ==========================================================================
+        // BUCLE PRINCIPAL DEL JUEGO
+        // ==========================================================================
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // 1. Limpiar pantalla e imágen de fondo
+            ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            drawBackground();
+
+            // 2. Actualizar estados del jugador y mundo
+            player.update();
+            updatePlatforms();
+            checkCollisions();
+
+            // 3. Suavizado de cámara enfocada en el jugador
+            camera.targetX = player.x - 300;
+            camera.x += (camera.targetX - camera.x) * camera.speed;
+
+            // 4. Renderizar elementos gráficos
+            drawPlatforms();
+            player.draw();
+
+            // Llamar al siguiente frame de animación
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Controladores de los Menús
+        function startGame() {
+            score = 0;
+            hp = 100;
+            scoreDisplay.textContent = score;
+            hpDisplay.textContent = hp + "%";
+            
+            player.resetPosition();
+            generateInitialPlatforms();
+            
+            startScreen.classList.add('hidden');
+            gameoverScreen.classList.add('hidden');
+            gameRunning = true;
+            gameLoop();
+        }
+
+        function endGame() {
+            gameRunning = false;
+            finalScore.textContent = score;
+            gameoverScreen.classList.remove('hidden');
+        }
+
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
+
